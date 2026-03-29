@@ -6,6 +6,7 @@
   justify-content: center;
   margin-bottom: 18px;
   margin-top: 32px;
+    margin-right: 25px;
 }
 
 .quiz-header-link {
@@ -30,8 +31,7 @@
   width: 48px;
   height: 48px;
   display: block;
-  margin-left: 15px auto;
-  margin-right: 15px;
+  margin: 0 auto; /* fixed from invalid '15px auto' */
   padding: 0;
 }
 
@@ -81,6 +81,18 @@
   }
 }
 
+html { height: 100%; }
+
+/* Respect mobile safe area: ensure content isn't hidden under the notch/status bar */
+body {
+  padding-top: env(safe-area-inset-top, 8px);
+}
+
+/* Reduce root top padding on small screens to avoid pushing content off-screen */
+@media (max-width: 600px) {
+  #root { padding: calc(env(safe-area-inset-top, 8px) + 8px) 12px 12px; }
+}
+
 /* Player Row Layout */
 .player-row-inner {
   display: flex;
@@ -103,9 +115,8 @@
 .player-volume-bar {
   height: 120px;
   width: 18px;
-  writing-mode: vertical-lr;
-  -webkit-appearance: slider-vertical;
-  appearance: slider-vertical;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
 }
 .player-center {
   display: flex;
@@ -182,8 +193,8 @@
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  display: block;
+  /* align content at the top so mobile pages don't get clipped */
   /* Removed: min-width: 1200px; */
   min-height: 100vh;
   overflow-x: hidden;
@@ -344,14 +355,12 @@ body {
   border: none;
   background: linear-gradient(90deg, #61dafb 0%, #535bf2 100%);
   color: #fff;
-  font-size: 1.15em;
-  font-weight: 600;
+  font-size: 1.6rem;
+  font-weight: 700;
   cursor: pointer;
   box-shadow: 0 2px 8px #00000022;
   transition: background 0.2s, transform 0.2s;
   margin-top: 0;
-  font-size: 1.6rem;
-  font-weight: 700;
   margin-left: auto;
   margin-right: auto;
 }
@@ -666,12 +675,13 @@ body {
   flex-shrink: 0;
 }
 
+/* Make the start screen use a dark card so profile dropdown sits on top visually */
 .quiz-search {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.95);
+  background: rgba(16,16,22,0.85);
   border-radius: 18px;
   box-shadow: 0 2px 16px rgba(0,0,0,0.08);
   padding: 32px 24px;
@@ -697,7 +707,7 @@ body {
 
 .quiz-subtitle {
   font-size: 1rem;
-  color: #444;
+  color: #ccc;
   margin-top: 4px;
 }
 
@@ -710,7 +720,7 @@ body {
 
 .quiz-search-label {
   font-weight: 500;
-  color: #333;
+  color: #ccc;
   margin-bottom: 4px;
 }
 
@@ -773,4 +783,130 @@ body {
     font-size: 1.1em;
     padding: 12px 24px;
   }
+}
+
+/* Profile dropdown styles: overlayed and theme-matching */
+.profile-dropdown {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  background: linear-gradient(180deg, rgba(18,18,24,0.98), rgba(26,26,34,0.98));
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 8px;
+  z-index: 20000 !important;
+  min-width: 220px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+.profile-dropdown div { color: #fff; }
+.profile-dropdown .quiz-btn { font-size: 0.9rem; padding: 6px 10px; }
+
+/* Profile modal overlay transformed into a small panel anchored top-right */
+.profile-modal-overlay {
+  position: fixed;
+  inset: auto 14px auto auto; /* top-right anchor with some spacing */
+  top: 12px;
+  right: 14px;
+  z-index: 20000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  pointer-events: auto;
+}
+.profile-modal {
+  background: linear-gradient(180deg, rgba(18,18,24,0.98), rgba(26,26,34,0.98));
+  border-radius: 12px;
+  padding: 16px;
+  min-width: 300px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  color: #fff;
+}
+
+/* Profile centered modal/menu */
+.profile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 20000;
+}
+
+.profile-menu-center {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20001;
+  min-width: 320px;
+  max-width: 92vw;
+  background: linear-gradient(180deg, rgba(18,18,24,0.98), rgba(26,26,34,0.98));
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.03);
+}
+.profile-menu-head { text-align: center; margin-bottom: 12px; }
+.profile-menu-title { font-weight: 700; color: #61dafb; font-size: 1.1rem; }
+.profile-menu-sub { color: #bbb; font-size: 0.9rem; }
+.profile-menu-section { margin-top: 8px; }
+.profile-menu-section-title { color: #ddd; font-weight: 600; margin-bottom: 8px; }
+.profile-menu-muted { color: #9aa0a6; }
+.profile-menu-error { color: #ff7b7b; }
+.profile-menu-actions { margin-top: 12px; display:flex; justify-content: center; gap: 8px; }
+
+.stats-grid { display: flex; gap: 8px; justify-content: center; margin-bottom: 8px; }
+.stat-card { background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 8px; min-width: 86px; text-align: center; }
+.stat-label { color: #9aa0a6; font-size: 0.85rem; }
+.stat-value { color: #fff; font-weight: 700; font-size: 1.15rem; }
+
+.profile-btn { display:flex; align-items:center; gap:8px; background: transparent; border: none; cursor:pointer; color: #fff; }
+.profile-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.06); }
+.profile-name { color: #fff; font-weight: 600; }
+
+/* Ad placements */
+.ad-side {
+  position: fixed;
+  top: 100px;
+  width: 140px;
+  height: 420px;
+  background-color: #232347;
+  color: #9aa0a6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  z-index: 50;
+}
+.ad-side.left { left: 12px; }
+.ad-side.right { right: 12px; }
+
+/* bottom ad for mobile */
+.ad-bottom {
+  display: none; /* hidden by default, shown on small screens */
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 72px;
+  background: #232347;
+  color: #9aa0a6;
+  align-items: center;
+  justify-content: center;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
+  z-index: 1000;
+}
+
+/* Responsive adjustments: hide side ads on small screens, show bottom ad */
+@media (max-width: 900px) {
+  .ad-side { display: none !important; }
+  .ad-bottom { display: flex !important; }
+  /* Ensure quiz-card doesn't overlap bottom ad */
+  .quiz-main { padding-bottom: 90px; }
+}
+
+/* Ensure profile modal stacks above footer and other content on small screens */
+@media (max-width: 520px) {
+  .profile-menu-center { width: calc(100% - 32px); left: 50%; top: 50%; transform: translate(-50%, -52%); }
 }

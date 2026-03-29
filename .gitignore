@@ -13,6 +13,28 @@ dist-ssr
 *.local
 
 
+# Node / Editor
+node_modules/
+.idea/
+.vscode/
+
+# For now, docs are not uploaded
+docs/
+# Environment files
+.env
+./backend/.env
+./frontend/.env
+
+# Local backend properties
+backend/src/main/resources/application-local.properties
+
+# IDE files
+*.iml
+
+# Build
+target/
+
+.vite
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
