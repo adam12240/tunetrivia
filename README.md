@@ -1,6 +1,6 @@
 # TuneTrivia
 
-Egyszerű, Vite + React alapú zenei kvíz alkalmazás Deezer API proxy-val.
+Egyszerű, Vite + React + Java Spring alapú zenei kvíz alkalmazás Deezer és Last.fm API-val.
 
 Funkciók
 
@@ -10,8 +10,10 @@ Funkciók
 - Skip / jump funkció: lehetőség a sáv bizonyos pontjára ugrani.
 - Pontszám és sorozat (streak) követése; megfelelő/hibás válaszokra hangjelzés (public/correct.wav és public/wrong.wav használata).
 - Google AdSense integráció, azonban a reklámok megjelenítése nem működik a Google által megkövetelt feltételek miatt (pl. érvényes domain és HTTPS szükséges).
-- Zene cím és előadó váltogatva kérdezve
+- Zene cím és előadó váltogatva kérdezve.
 - Egyszerű, letisztult UI a Vite + React használatával.
+- Last.fm integráció a leghallgatottabb számok és playlistek játékba helyezéséhez.
+- Profilmenü ahol a felhasználó megtekintheti a statisztikáit, és kijelentkezhet a Google fiókjából.
 
 Rövid használat
 
@@ -20,15 +22,16 @@ Rövid használat
 ```bash
 cd frontend
 npm install
-npm npm --prefix frontend run build
-npx serve -s frontend\dist -l 5173
+npm run build
+npx serve -s dist -l 5173
 ```
 
 2) Backend (projekt gyökérben):
 A projekt futtatásához szükséges Docker és Maven telepítése.
+A backend elindításához először a Docker Compose segítségével el kell indítani a szükséges szolgáltatásokat (pl. PostgreSQL adatbázis), majd a Maven segítségével elindítani a Spring Boot alkalmazást a megfelelő profil használatával.
 
 ```bash
-docker compose up -d 
+docker compose up -d
 cd backend
 mvn spring-boot:run "-Dspring-boot.run.profiles=postgres"
 ```

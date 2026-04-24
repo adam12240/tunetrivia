@@ -6,6 +6,7 @@ function ProfileMenuContent({ user, myStats, mySummary, statsLoading, statsError
     <>
       <div className="profile-overlay" onClick={onClose} />
       <div className="profile-menu profile-menu-center" role="menu">
+        <button className="profile-close-btn" aria-label="Close profile menu" onClick={onClose}>×</button>
         <div className="profile-menu-head">
           <div className="profile-menu-title">Signed in</div>
           <div className="profile-menu-sub">{user.email || user.sub}</div>

@@ -24,11 +24,13 @@ public class DeezerProxyController {
     public ResponseEntity<?> proxy(
             @RequestParam(required = false) String genreId,
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) String genre
+            @RequestParam(required = false) String genre,
+            @RequestParam(required = false, defaultValue = "150") int limit
     ) {
         try {
             if (genreId != null && !genreId.isBlank()) {
-                ObjectNode resp = service.fetchGenreTracks(genreId, 20);
+                int safeLimit = Math.max(1, Math.min(limit, 300));
+                ObjectNode resp = service.fetchGenreTracks(genreId, safeLimit);
                 return ResponseEntity.ok(resp);
             }
             String searchQuery = (genre != null && !genre.isBlank()) ? genre : q;

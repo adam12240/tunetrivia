@@ -69,9 +69,24 @@
   .quiz-title {
     font-size: 1.3rem !important;
   }
+  /* Make primary buttons larger and easier to tap on mobile */
   .quiz-btn {
-    font-size: 1rem !important;
-    padding: 10px 0 !important;
+    font-size: 1.05rem !important;
+    padding: 14px 18px !important;
+    min-width: 160px !important;
+    box-sizing: border-box;
+  }
+
+  /* Specifically make the Submit button in the question area full-width and more prominent */
+  .quiz-question .quiz-btn {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    padding: 16px 18px !important;
+    font-size: 1.15rem !important;
+    border-radius: 12px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
   .quiz-list-item {
     font-size: 1rem !important;
@@ -836,14 +851,25 @@ body {
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 20001;
-  min-width: 320px;
+  min-width: 260px; /* allow smaller phones */
   max-width: 92vw;
+  width: auto;
+  /* removed max-height/overflow to avoid scroll slider; use flex sizing */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   background: linear-gradient(180deg, rgba(18,18,24,0.98), rgba(26,26,34,0.98));
   border-radius: 12px;
   padding: 18px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.6);
   border: 1px solid rgba(255,255,255,0.03);
+  padding-top: 40px; /* reserve space for close button */
+  box-sizing: border-box;
 }
+/* make the stats grid wrap so it doesn't force the modal tall */
+.stats-grid { display: flex; gap: 8px; justify-content: center; margin-bottom: 8px; flex-wrap: wrap; }
+.stat-card { background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 8px; min-width: 86px; text-align: center; flex: 1 1 44%; box-sizing: border-box; max-width: calc(50% - 8px); }
+
 .profile-menu-head { text-align: center; margin-bottom: 12px; }
 .profile-menu-title { font-weight: 700; color: #61dafb; font-size: 1.1rem; }
 .profile-menu-sub { color: #bbb; font-size: 0.9rem; }
@@ -908,5 +934,63 @@ body {
 
 /* Ensure profile modal stacks above footer and other content on small screens */
 @media (max-width: 520px) {
-  .profile-menu-center { width: calc(100% - 32px); left: 50%; top: 50%; transform: translate(-50%, -52%); }
+  .profile-menu-center {
+    width: calc(100% - 24px);
+    left: 50%;
+    top: 8vh; /* anchor near top to avoid viewport overflow */
+    transform: translateX(-50%); /* only center horizontally */
+    padding: 12px 12px 16px 12px;
+    border-radius: 10px;
+    box-sizing: border-box;
+  }
+  .profile-close-btn { top: 6px; right: 6px; font-size: 1.6rem; padding: 8px 10px; }
+}
+
+/* Close button for profile menu (minimal, focused) */
+.profile-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 20002;
+}
+.profile-close-btn:hover { background: rgba(255,255,255,0.03); }
+
+/* Final overrides: ensure profile menu stays compact (flex) and no slider appears */
+.stats-grid {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap; /* allow items to wrap instead of growing the container */
+}
+.stat-card {
+  background: rgba(255,255,255,0.03);
+  padding: 8px 12px;
+  border-radius: 8px;
+  min-width: 86px;
+  text-align: center;
+  flex: 1 1 44%; /* allow cards to shrink and sit in two columns on small screens */
+  box-sizing: border-box;
+  max-width: calc(50% - 8px);
+}
+
+/* Mobile-specific sizing to avoid any overflow/slider: reduce paddings and font sizes slightly */
+@media (max-width: 520px) {
+  .stat-card {
+    flex: 1 1 48%;
+    min-width: 100px;
+    padding: 6px 8px;
+    max-width: calc(50% - 8px);
+  }
+  .profile-menu-title { font-size: 1rem; }
+  .stat-value { font-size: 1rem; }
+  .profile-menu-center { align-items: stretch; }
 }

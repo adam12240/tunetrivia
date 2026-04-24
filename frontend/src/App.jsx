@@ -179,7 +179,7 @@ export default function App() {
       <div className="ad-bottom">Ad</div>
 
       <footer className="quiz-footer">
-        Powered by Deezer
+          Powered by Deezer and Last.fm APIs. Developed by <a href="github.com/adam12240">Adam Szabo</a>
       </footer>
     </main>
   );

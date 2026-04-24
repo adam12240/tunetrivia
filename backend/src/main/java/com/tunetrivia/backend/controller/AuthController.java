@@ -2,6 +2,7 @@ package com.tunetrivia.backend.controller;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tunetrivia.backend.service.AuthService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -43,7 +44,7 @@ public class AuthController {
     }
 
     @PostMapping(value = "/logout")
-    public ResponseEntity<?> logout(jakarta.servlet.http.HttpServletResponse resp) {
+    public ResponseEntity<?> logout(HttpServletResponse resp) {
         // clear the MQ_AUTH cookie by setting Max-Age=0 and including SameSite=None; Secure to match how it was set
         String cookieValueSecure = "MQ_AUTH=; Path=/; HttpOnly; Max-Age=0; SameSite=None; Secure";
         String cookieValueInsecure = "MQ_AUTH=; Path=/; HttpOnly; Max-Age=0; SameSite=None";

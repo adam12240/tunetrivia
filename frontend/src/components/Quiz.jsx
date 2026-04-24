@@ -47,7 +47,9 @@ export default function Quiz({ user }) {
     if (correctSound.current) correctSound.current.volume = volume;
     if (wrongSound.current) wrongSound.current.volume = volume;
   }, [volume]);
-  const [numSongs, setNumSongs] = useState(5);
+  const [numSongs, setNumSongs] = useState(20);
+  // Keep a string-backed input so users can freely type multi-digit numbers
+  const [numSongsInput, setNumSongsInput] = useState(String(20));
   const [isPlaying, setIsPlaying] = useState(false);
   const [, setSectionStartTime] = useState(0);
   const [, setSectionPlayed] = useState(false);
@@ -81,6 +83,32 @@ export default function Quiz({ user }) {
   };
 
   useEffect(() => {
+    // If an external_quiz flag is present, try to load tracks from sessionStorage
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('external_quiz') === '1') {
+        const raw = sessionStorage.getItem('external_quiz_tracks');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const fetchCount = gameMode === 'endless' ? 100 : numSongs;
+            setResults(parsed.slice(0, fetchCount));
+            setCurrent(parsed[0]);
+            setStep(0);
+            setScore(0);
+            setSelected(null);
+            setJumpIndex(0);
+            // remove flag to avoid reloading repeatedly
+            url.searchParams.delete('external_quiz');
+            window.history.replaceState({}, document.title, url.toString());
+            return;
+          }
+        }
+      }
+
+      // eslint-disable-next-line no-unused-vars
+    } catch (e) { /* ignore */ }
+
     if (audioRef.current) {
       audioRef.current.volume = 0.3;
       audioRef.current.currentTime = 0;
@@ -90,7 +118,7 @@ export default function Quiz({ user }) {
     setSectionPlayed(false);
     setCurrentSkips(0);
     if (jumpTimeout) clearTimeout(jumpTimeout);
-  }, [current, jumpTimeout]);
+  }, [current, jumpTimeout, gameMode, numSongs]);
 
   const searchTracks = async () => {
     setQuizEnded(false);
@@ -100,7 +128,7 @@ export default function Quiz({ user }) {
     if (gameMode === 'classic') setBestStreak(0);
     try {
       const fetchCount = gameMode === 'endless' ? 100 : numSongs;
-      const res = await apiFetch(`/deezer?genreId=${genreId}`);
+      const res = await apiFetch(`/deezer?genreId=${genreId}&limit=${fetchCount}`);
       if (!res.ok) return;
       const json = await res.json();
       const filterKeywords = [
@@ -118,9 +146,11 @@ export default function Quiz({ user }) {
         .filter(name => !isBadArtist(name));
       setGenreArtists(artists);
       setArtistTracks(json.artistTracks || {});
-      const shuffledTracks = json.data.sort(() => 0.5 - Math.random());
-      setResults(shuffledTracks.slice(0, fetchCount));
-      setCurrent(shuffledTracks[0]);
+      const shuffledTracks = shuffle(json.data || []);
+      const selected = shuffledTracks.slice(0, fetchCount);
+      setResults(selected);
+      const firstWithPreview = selected.find(x => x && x.preview);
+      setCurrent(firstWithPreview || selected[0]);
       setStep(0);
       setScore(0);
       setSelected(null);
@@ -145,7 +175,7 @@ export default function Quiz({ user }) {
       const json = await res.json();
       const incoming = Array.isArray(json.data) ? json.data : [];
       const filtered = incoming.filter(t => t && t.id && !alreadyAnsweredIds.has(t.id));
-      return filtered.sort(() => 0.5 - Math.random());
+      return shuffle(filtered);
     } catch {
       return [];
     }
@@ -261,7 +291,15 @@ export default function Quiz({ user }) {
     }
   };
 
-  function shuffle(arr) { return [...arr].sort(() => 0.5 - Math.random()); }
+  // Fisher-Yates shuffle
+  function shuffle(arr) {
+    const a = Array.isArray(arr) ? [...arr] : [];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
 
   useEffect(() => {
     if (!current) {
@@ -270,22 +308,97 @@ export default function Quiz({ user }) {
     }
     const mode = (step % 2 === 0) ? 'artist' : 'title';
     if (mode === 'artist') {
-      const correctArtist = current.artist.name;
-      let plausible = genreArtists.filter(a => a !== correctArtist);
-      if (current.release_date) {
+      // Normalize and dedupe artist names (case-insensitive)
+      const getName = s => (s && String(s).trim()) || '';
+      const correctRaw = getName((current && current.artist && current.artist.name) ? current.artist.name : '');
+      const correct = correctRaw || 'Unknown Artist';
+
+      const pool = new Set();
+      (genreArtists || []).forEach(a => { const n = getName(a); if (n) pool.add(n); });
+      (results || []).forEach(t => { const n = getName(t?.artist?.name); if (n) pool.add(n); });
+      Object.keys(artistTracks || {}).forEach(k => { const n = getName(k); if (n) pool.add(n); });
+
+      const isBad = (name) => !name || name.length > 60;
+
+      // Build candidates array excluding the correct artist (case-insensitive)
+      const lowerCorrect = correct.toLowerCase();
+      let candidates = Array.from(pool).filter(a => a && a.toLowerCase() !== lowerCorrect && !isBad(a));
+
+      // Prefer nearby-year artists if available
+      if (current.release_date && candidates.length > 0) {
         const year = parseInt(current.release_date.slice(0, 4));
-        plausible = plausible.filter(a => {
+        const near = candidates.filter(a => {
           const tracks = artistTracks[a] || [];
           return tracks.some(t => {
-            if (!t.release_date) return false;
+            if (!t?.release_date) return false;
             const y = parseInt(t.release_date.slice(0, 4));
-            return Math.abs(y - year) <= 2;
+            return Number.isFinite(y) && Math.abs(y - year) <= 2;
           });
         });
+        if (near.length > 0) candidates = [...new Set([...near, ...candidates.filter(a => !near.includes(a))])];
       }
-      const fakeArtists = shuffle(plausible).slice(0, 3);
-      setOptions(shuffle([correctArtist, ...fakeArtists]));
-    } else {
+
+      // Shuffle and pick up to 3 unique candidates
+      const picked = [];
+      const shuffled = shuffle(candidates);
+      for (let i = 0; i < shuffled.length && picked.length < 3; i++) {
+        const name = shuffled[i];
+        if (!name) continue;
+        const ln = name.toLowerCase();
+        if (!picked.some(p => p.toLowerCase() === ln)) picked.push(name);
+      }
+
+      // Fill remaining slots from results if needed
+      let idx = 0;
+      while (picked.length < 3 && idx < (results || []).length) {
+        const cand = getName(results[idx++]?.artist?.name);
+        if (cand && cand.toLowerCase() !== lowerCorrect && !picked.some(p => p.toLowerCase() === cand.toLowerCase())) picked.push(cand);
+      }
+
+      // Final fallback: placeholders to ensure 3 distractors (use letters + small random suffix to make them distinct)
+      const letters = ['A','B','C','D','E','F','G','H'];
+      let ph = 0;
+      while (picked.length < 3) {
+        const placeholder = `Artist ${letters[ph % letters.length]}${Math.floor(Math.random()*90)+10}`;
+        ph++;
+        const lph = placeholder.toLowerCase();
+        if (lph === lowerCorrect) continue;
+        if (!picked.some(p => p.toLowerCase() === lph)) picked.push(placeholder);
+      }
+
+      // Build final options with deduplication
+      const final = [correct, ...picked].slice(0, 4);
+      // Ensure uniqueness case-insensitively
+      const seen = new Set();
+      const uniqueFinal = [];
+      for (const it of final) {
+        const lk = (it || '').toLowerCase();
+        if (!seen.has(lk)) { seen.add(lk); uniqueFinal.push(it); }
+      }
+      // If we somehow lost items due to dedupe, fill placeholders
+      let placeholderCounter = 1;
+      while (uniqueFinal.length < 4) {
+        const placeholder = `Artist X${placeholderCounter++}`;
+        if (!uniqueFinal.some(u => u.toLowerCase() === placeholder.toLowerCase())) uniqueFinal.push(placeholder);
+      }
+
+      // Shuffle and ensure exactly 4 items
+      const shuffledFinal = shuffle(uniqueFinal).slice(0, 4);
+      // As a last-resort safety, guarantee uniqueness and length
+      const finalOptions = [];
+      const seen2 = new Set();
+      for (const it of shuffledFinal) {
+        const lk = (it || '').toLowerCase();
+        if (!seen2.has(lk)) { seen2.add(lk); finalOptions.push(it); }
+      }
+      let fillIndex = 1;
+      while (finalOptions.length < 4) {
+        const ph = `Artist Y${fillIndex++}`;
+        if (!finalOptions.some(f => f.toLowerCase() === ph.toLowerCase())) finalOptions.push(ph);
+      }
+
+      setOptions(finalOptions);
+     } else {
       const correctTitle = current.title || '';
       const correctTitleStripped = stripBrackets(correctTitle);
       const candidates = new Set();
@@ -296,6 +409,106 @@ export default function Quiz({ user }) {
       setOptions(shuffle([correctTitleStripped, ...fakeTitles]));
     }
   }, [current, genreArtists, artistTracks, results, step]);
+
+  // Last.fm import UI state and handlers
+  const [lastfmUsername, setLastfmUsername] = useState('');
+  const [lastfmLoading, setLastfmLoading] = useState(false);
+  const [lastfmError, setLastfmError] = useState('');
+  const [lastfmActive, setLastfmActive] = useState(false); // whether a Last.fm import is currently loaded
+  const [lastfmEndless, setLastfmEndless] = useState(false);
+  const [lastfmMode, setLastfmMode] = useState('tracks'); // 'tracks' or 'playlist'
+  const [lastfmPlaylistUrl, setLastfmPlaylistUrl] = useState('');
+  const [lastfmSummary, setLastfmSummary] = useState(null);
+
+  const importLastfm = async () => {
+    setLastfmError('');
+    const username = (lastfmUsername || '').trim();
+    const playlistUrl = (lastfmPlaylistUrl || '').trim();
+    if (lastfmMode === 'tracks' && !username) {
+      setLastfmError('Please enter your Last.fm username');
+      return;
+    }
+    if (lastfmMode === 'playlist' && !playlistUrl) {
+      setLastfmError('Please enter a Last.fm playlist URL');
+      return;
+    }
+    setLastfmLoading(true);
+    try {
+      let endpoint;
+      if (lastfmMode === 'tracks') {
+        endpoint = `/api/lastfm/top-tracks?user=${encodeURIComponent(username)}&limit=150`;
+      } else {
+        endpoint = `/api/lastfm/playlist?url=${encodeURIComponent(playlistUrl)}&limit=150`;
+      }
+      const res = await apiFetch(endpoint);
+      if (!res.ok) {
+        let body;
+        try { body = await res.json(); } catch { body = null; }
+        setLastfmError((body && body.error) ? body.error : `Failed to fetch Last.fm (${res.status})`);
+        setLastfmLoading(false);
+        return;
+      }
+      const json = await res.json();
+      if (!Array.isArray(json) || json.length === 0) {
+        setLastfmError('No results from Last.fm');
+        setLastfmLoading(false);
+        return;
+      }
+      // normalize returned items
+      const normalized = (json || []).map(t => ({
+        id: `lf:${t.title}:${t.artist?.name}`,
+        title: t.title || '',
+        artist: { name: t.artist?.name || '' },
+        album: { cover_xl: t.album?.cover_xl || '' },
+        preview: t.preview || null
+      }));
+
+      // enforce minimum of 4 tracks for Last.fm imports
+      if (normalized.length < 4) {
+        setLastfmError('Last.fm import must contain at least 4 tracks');
+        setLastfmLoading(false);
+        return;
+      }
+
+      const fetchCount = lastfmEndless ? 100 : numSongs;
+      const shuffled = shuffle(normalized);
+      const list = shuffled.slice(0, fetchCount);
+      setResults(list);
+      // pick first with preview if possible
+      const firstWithPreview = list.find(x => x && x.preview);
+      setCurrent(firstWithPreview || list[0]);
+      setStep(0);
+      setScore(0);
+      setSelected(null);
+      setJumpIndex(0);
+      // summary: total and number with preview
+      const total = list.length;
+      const withPreview = list.filter(x => x && x.preview).length;
+      // If endless was requested, we do not expose the total track count in the UI
+      setLastfmSummary({ total, withPreview });
+      // If user selected the Last.fm endless checkbox, switch quiz into endless mode
+      if (lastfmEndless) setGameMode('endless');
+       setLastfmLoading(false);
+    } catch (e) {
+      console.error(e);
+      setLastfmError('Failed to import from Last.fm');
+      setLastfmLoading(false);
+    }
+  };
+
+  const clearLastfmImport = () => {
+    setLastfmActive(false);
+    setLastfmEndless(false);
+    setLastfmUsername('');
+    setResults([]);
+    setCurrent(null);
+    setSelected(null);
+    setStep(0);
+    setScore(0);
+    setJumpIndex(0);
+    // Restore normal mode
+    setGameMode('classic');
+  };
 
   return (
     <div className="quiz-card">
@@ -317,7 +530,7 @@ export default function Quiz({ user }) {
       <div className="foreground">
         <div className="foreground-inner">
           {current && (
-            <div className="title-row"><span className="quiz-title quiz-header-link quiz-title-link" tabIndex={0} role="button" aria-label="Go to genre selection"><img src="/headphones.png" alt="TuneTrivia Logo" className="quiz-logo" />TuneTrivia</span></div>
+            <div className="title-row"><span className="quiz-title quiz-header-link quiz-title-link" tabIndex={0} role="button" aria-label="Go to genre selection" onClick={() => { /* go back to home/front page */ window.location.reload(); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.reload(); } }}><img src="/headphones.png" alt="TuneTrivia Logo" className="quiz-logo" />TuneTrivia</span></div>
           )}
 
           {!current && !quizEnded && (
@@ -331,13 +544,112 @@ export default function Quiz({ user }) {
                 <label className="quiz-search-label">Genre
                   <select className="quiz-input" value={genreId} onChange={e => setGenreId(Number(e.target.value))}>{GENRES.map(g => (<option key={g.id} value={g.id}>{g.label}</option>))}</select>
                 </label>
-                {gameMode !== 'endless' && (
-                  <label className="quiz-search-label">Number of songs<br /><input type="number" min={1} max={20} value={numSongs} onChange={e => setNumSongs(Math.max(1, Math.min(20, Number(e.target.value))))} className="quiz-input quiz-number-input" aria-label="Number of songs" /></label>
+                {gameMode !== 'endless' && !(gameMode === 'lastfm' && lastfmEndless) && (
+                  <label className="quiz-search-label">Number of songs<br />
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="e.g. 50"
+                      value={numSongsInput}
+                      onChange={e => {
+                        const v = e.target.value;
+                        // allow empty or numeric typing
+                        if (/^\d*$/.test(v)) {
+                          setNumSongsInput(v);
+                          if (/^\d+$/.test(v)) {
+                            // update numeric state when full integer available
+                            const n = Math.max(1, Number(v));
+                            setNumSongs(n);
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        // sanitize on blur: ensure a valid number is saved
+                        let n = parseInt(numSongsInput, 10);
+                        if (!Number.isFinite(n) || n < 1) n = 1;
+                        setNumSongs(n);
+                        setNumSongsInput(String(n));
+                      }}
+                      className="quiz-input quiz-number-input"
+                      aria-label="Number of songs"
+                    />
+                  </label>
                 )}
                 <label className="quiz-search-label">Game Mode
-                  <select className="quiz-input" value={gameMode} onChange={e => setGameMode(e.target.value)}><option value="classic">Classic</option><option value="endless">Endless</option></select>
+                  <select className="quiz-input" value={gameMode} onChange={e => setGameMode(e.target.value)}>
+                    <option value="classic">Classic</option>
+                    <option value="endless">Endless</option>
+                    <option value="lastfm">Last.fm import</option>
+                  </select>
                 </label>
-                <button className="quiz-btn quiz-start-btn" onClick={() => searchTracks(numSongs)}>Start Quiz</button>
+                {gameMode === 'lastfm' ? (
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <select value={lastfmMode} onChange={e => setLastfmMode(e.target.value)} style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(0,0,0,0.35)', color: 'white', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <option value="tracks">Top tracks</option>
+                      <option value="playlist">Playlist URL</option>
+                    </select>
+                    {lastfmMode === 'tracks' ? (
+                      <input
+                        type="text"
+                        placeholder="Last.fm username"
+                        value={lastfmUsername}
+                        onChange={e => setLastfmUsername(e.target.value)}
+                        disabled={lastfmLoading}
+                        style={{
+                          width: 260,
+                          padding: '10px 12px',
+                          borderRadius: 10,
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          background: 'rgba(0,0,0,0.35)',
+                          color: 'white',
+                          outline: 'none'
+                        }}
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        placeholder="Last.fm playlist URL"
+                        value={lastfmPlaylistUrl}
+                        onChange={e => setLastfmPlaylistUrl(e.target.value)}
+                        disabled={lastfmLoading}
+                        style={{
+                          width: 420,
+                          padding: '10px 12px',
+                          borderRadius: 10,
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          background: 'rgba(0,0,0,0.35)',
+                          color: 'white',
+                          outline: 'none'
+                        }}
+                      />
+                    )}
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--muted-color)' }}>
+                      <input type="checkbox" checked={lastfmEndless} onChange={e => setLastfmEndless(e.target.checked)} /> Endless
+                    </label>
+                    <button
+                      className="quiz-btn quiz-start-btn"
+                      onClick={() => importLastfm()}
+                      disabled={lastfmLoading || (lastfmMode === 'tracks' ? !lastfmUsername : !lastfmPlaylistUrl)}
+                      style={{ padding: '14px 18px', borderRadius: 12, fontSize: 16, background: 'linear-gradient(135deg, #6dd3ff, #6e7bff)', color: 'white', border: 'none', boxShadow: '0 6px 18px rgba(110,123,255,0.25)', cursor: lastfmLoading || (lastfmMode === 'tracks' ? !lastfmUsername : !lastfmPlaylistUrl) ? 'default' : 'pointer' }}
+                    >{lastfmLoading ? 'Loading…' : 'Start Quiz'}</button>
+                    {lastfmActive && (
+                      <button className="quiz-btn" onClick={clearLastfmImport} style={{ padding: '10px 14px', borderRadius: 10, background: '#fff', color: '#111', border: 'none' }}>Clear</button>
+                    )}
+                  </div>
+                ) : (
+                 <button className="quiz-btn quiz-start-btn" onClick={() => searchTracks(numSongs)}>Start Quiz</button>
+                )}
+                {lastfmError && <div style={{ color: 'var(--error-color)', marginTop: 8 }}>{lastfmError}</div>}
+                {lastfmSummary && (
+                  <div style={{ color: 'var(--muted-color)', marginTop: 8 }}>
+                    {lastfmEndless ? (
+                      <>Previewable: {lastfmSummary.withPreview}</>
+                    ) : (
+                      <>Imported: {lastfmSummary.total} tracks · Previewable: {lastfmSummary.withPreview}</>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

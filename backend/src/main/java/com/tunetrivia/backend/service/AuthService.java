@@ -8,6 +8,7 @@ import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -63,7 +64,7 @@ public class AuthService {
             var resp = client.send(req, HttpResponse.BodyHandlers.ofString());
             if (resp.statusCode() != 200) {
                 log.warn("Google tokeninfo returned status {} for token", resp.statusCode());
-                throw new ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "invalid_token");
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_token");
             }
             String body = resp.body();
             Map<String, Object> json = mapper.readValue(body, new TypeReference<>() {});
@@ -73,24 +74,23 @@ public class AuthService {
             String picture = json.getOrDefault("picture", null) != null ? String.valueOf(json.get("picture")) : null;
 
             if (sub == null || sub.isBlank()) {
-                // Avoid logging entire tokeninfo response (may contain PII)
-                log.warn("tokeninfo did not contain sub; tokeninfo response omitted for privacy");
-                throw new ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "invalid_token");
+                log.warn("tokeninfo did not contain sub: {}", body);
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_token");
             }
 
             return new GoogleVerifyResponse(sub, email, name, picture);
         } catch (IOException e) {
             log.error("IO error while verifying token", e);
-            throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_GATEWAY, "upstream_io_error", e);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "upstream_io_error", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("Token verification interrupted", e);
-            throw new ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "interrupted", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "interrupted", e);
         } catch (ResponseStatusException e) {
             throw e;
         } catch (Exception e) {
             log.error("Unexpected error verifying token", e);
-            throw new ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "internal_error", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "internal_error", e);
         }
     }
 
@@ -117,8 +117,7 @@ public class AuthService {
 
             var r = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (r.statusCode() != 200) {
-                // Avoid logging token response bodies (may include sensitive tokens)
-                log.warn("Token endpoint returned status {} during code exchange", r.statusCode());
+                log.warn("Token endpoint returned {}: {}", r.statusCode(), r.body());
                 throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_GATEWAY, "token_exchange_failed");
             }
 
