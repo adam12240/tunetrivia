@@ -521,16 +521,20 @@ export default function Quiz({ user }) {
       )}
       {current && <div className="album-overlay" />}
 
-      {current && gameMode !== 'endless' && (
+          {current && gameMode !== 'endless' && (
         <div className="top-progress">
           <div className="top-progress-fill" style={{ width: `${((step + (isPlaying ? audioTime / (current.preview ? 30 : 1) : 0)) / results.length) * 100}%` }} />
         </div>
       )}
 
+
+
       <div className="foreground">
         <div className="foreground-inner">
           {current && (
-            <div className="title-row"><span className="quiz-title quiz-header-link quiz-title-link" tabIndex={0} role="button" aria-label="Go to genre selection" onClick={() => { /* go back to home/front page */ window.location.reload(); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.reload(); } }}><img src="/headphones.png" alt="TuneTrivia Logo" className="quiz-logo" />TuneTrivia</span></div>
+            <div className="title-row">
+              <span className="quiz-title quiz-header-link quiz-title-link" tabIndex={0} role="button" aria-label="Go to genre selection" onClick={() => { /* go back to home/front page */ window.location.reload(); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.reload(); } }}><img src="/headphones.png" alt="TuneTrivia Logo" className="quiz-logo" />TuneTrivia</span>
+            </div>
           )}
 
           {!current && !quizEnded && (
@@ -655,8 +659,15 @@ export default function Quiz({ user }) {
           )}
 
           {current && (
-            <div className="quiz-question">
-              <div className="player-row">
+            <>
+              {gameMode !== 'endless' && (
+                <div className="quiz-stats-inline">
+                  <span className="stat-item-inline correct">✓ {score}</span>
+                  <span className="stat-item-inline wrong">✗ {answers.length - score}</span>
+                </div>
+              )}
+              <div className="quiz-question">
+                <div className="player-row">
                 <audio ref={audioRef} src={current.preview} className="hidden-audio" onTimeUpdate={() => { setAudioTime(audioRef.current.currentTime); if (audioRef.current && jumpIndex < JUMP_TIMES.length) { const sectionEnd = JUMP_TIMES[jumpIndex]; if (audioRef.current.currentTime >= sectionEnd) { audioRef.current.pause(); setSectionPlayed(true); } } }} onLoadedMetadata={() => { setAudioDuration(audioRef.current.duration); audioRef.current.volume = volume; }} onPlay={() => { setIsPlaying(true); setSectionStartTime(0); }} onPause={() => setIsPlaying(false)} />
                 <div className="player-row-inner">
                   <div className="player-volume"><span className="player-label">Volume</span><input type="range" min={0} max={1} step={0.01} value={volume} onChange={e => { setVolume(Number(e.target.value)); if (audioRef.current) audioRef.current.volume = Number(e.target.value); }} className="player-volume-bar" aria-label="Volume" /></div>
@@ -676,7 +687,8 @@ export default function Quiz({ user }) {
               }</p>
               <ul className="quiz-list">{options.map((artist, idx) => (<li key={idx} className="quiz-list-item"><label className="quiz-radio-label"><input type="radio" name="answer" value={artist} checked={selected === artist} onChange={() => setSelected(artist)} className="quiz-radio" />{artist}</label></li>))}</ul>
               <button className="quiz-btn" onClick={() => nextQuestion(false, selected)} disabled={!selected}>Submit</button>
-            </div>
+              </div>
+            </>
           )}
 
           {quizEnded && (

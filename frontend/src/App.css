@@ -994,3 +994,42 @@ body {
   .stat-value { font-size: 1rem; }
   .profile-menu-center { align-items: stretch; }
 }
+
+/* Quiz Statistics Display - Inline version */
+.quiz-stats-inline {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  margin-top: 8px;
+  justify-content: center;
+}
+
+.stat-item-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.stat-item-inline.correct {
+  color: #3FF57A;
+}
+
+.stat-item-inline.wrong {
+  color: #FF6F61;
+}
+
+@media (max-width: 600px) {
+  .quiz-stats-inline {
+    gap: 12px;
+    margin-bottom: 12px;
+    margin-top: 6px;
+  }
+
+  .stat-item-inline {
+    font-size: 0.85rem;
+  }
+}
