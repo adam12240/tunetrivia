@@ -35,6 +35,25 @@ docker compose up -d
 cd backend
 mvn spring-boot:run "-Dspring-boot.run.profiles=postgres"
 ```
+3) Tesztek
+A backend és frontend tesztjeit részletesen az alábbiak szerint futtathatod. A leírás tartalmaz példákat teljest futtatásra, egyetlen fájl tesztelésére, watch módra és gyakori hibák megoldására.
+
+Frontend (Vitest)
+
+- Futtatás (az összes frontend teszt):
+
+```bash
+cd frontend
+npx vitest --run
+```
+Backend (Maven + JUnit)
+
+- Futtatás (minden backend unit teszt):
+
+```bash
+cd backend
+mvn test -DskipITs
+```
 
 Ahhoz hogy elinduljon a backend, mindenképp szükség van három .env fájlra, az example.env fájl alapján, amely tartalmazza a szükséges környezeti változókat (pl. Google OAuth, adatbázis hitelesítő adatok).
 - A frontend általában: http://localhost:5173
@@ -42,4 +61,3 @@ Ahhoz hogy elinduljon a backend, mindenképp szükség van három .env fájlra, 
 
 Konzulens: Bilicki Vilmos
 Készítette: Szabó Ádám
-
