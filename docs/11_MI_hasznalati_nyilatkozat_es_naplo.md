@@ -1,0 +1,17 @@
+# MI-használati napló — TuneTrivia
+
+A dolgozat készítése során mesterséges intelligencia alapú eszközöket használtam ötletelésre, szövegtervezésre, kódmagyarázatra, hibakeresésre és/vagy tesztadat-generálásra. Az MI által javasolt tartalmakat önállóan ellenőriztem, módosítottam, és a végső szakmai felelősséget vállalom. A dolgozatban szereplő megoldások, döntések és következtetések saját mérnöki munkám eredményei.
+
+| Dátum | Eszköz / modell | Feladat | Rövid prompt | Eredmény                                                                       | Ellenőrzés | Beépítve |
+|---|---|---|---|--------------------------------------------------------------------------------|---|---|
+| 2025-09-15 | LLM asszisztens | Szakdolgozat vázlat készítése | "Készíts vázlatot a TuneTrivia szakdolgozathoz: célok, MVP, módszer" | Kidolgozott tartalomjegyzék és fejezetjavaslat                                 | Manuális szerzői átnézés | igen |
+| 2025-10-10 | LLM asszisztens | Irodalom-áttekintés összefoglalása | "Összefoglaló a hasonló zenés kvízekről és releváns publikációkról" | 2 oldalnyi összefoglaló és hivatkozások listája                                | Hivatkozások és források ellenőrzése | igen |
+| 2025-11-20 | LLM asszisztens | Architektúra-ötletek | "Adj 3 lehetséges architektúrát (monolit, mikroservice, serverless) az MVP-hez" | Három alternatíva összehasonlítása, előnyök/kockázatok                         | Manuális mérnöki értékelés | részben |
+| 2025-12-05 | LLM asszisztens | Backend fejlesztési segítség | "Segíts a Google idToken szerveroldali validálásában Spring Bootban (példa kód)" | Példa kódrészlet és javasolt könyvtárak                                        | Kódintegráció és manuális teszt | igen |
+| 2026-01-15 | LLM asszisztens | Adatbázis migrációs minta | "Mutass példát Flyway migrációra PlayStat tábla létrehozásához" | SQL migrációs példa (V1)                                                       | Migráció futtatása Docker Compose alatt | igen |
+| 2026-02-25 | LLM asszisztens | Frontend UX szöveg javaslat | "Írj rövid, világos UI szövegeket a Start/Result képernyőkhöz" | Szövegjavaslatok és button label-ek                                            | Manuális UX ellenőrzés, véglegesítés | igen |
+| 2026-04-12 | LLM asszisztens | Teljesítmény optimalizáció | "Javaslat p95 latency csökkentésére quiz startnál" | Cache ötletek és kérdés-sampling megoldások                                    | Manuális profilozás, mérések | részben |
+| 2026-04-25 | LLM asszisztens | Biztonsági ellenőrző lista | "Adj egy checklistet OAuth és titokkezelés ellenőrzésére" | Checklist, .env.example javaslat                                               | Secret-scan javasolt; manuális review | nem |
+| 2026-05-02 | LLM asszisztens | Dokumentumok projekt-specifikusra alakítása | "Átdolgozni a docs/ md fájlokat TuneTrivia-re" | Átdolgozott MD fájlok (01–12)                                                  | Manuális review; kód ellenőrzés | igen |
+| 2026-05-02 | LLM asszisztens | ADR-ek generálása | "Generálj ADR fájlokat a projekt architektúrájához" | 5 ADR létrehozva a `docs/adr/`-ban (ADR-001..ADR-005)                          | Manuális review; ellenőrzés | igen |
+| 2026-05-02 | LLM asszisztens | API dokumentáció pontosítása | "Egyeztesd a docs/ API szekciót a backend kontrollerekkel" | `docs/08_modulok_interfeszek_API_sablon.md` frissítve a tényleges végpontokkal | Kódolvasás: kontrollerek ellenőrizve | igen |
