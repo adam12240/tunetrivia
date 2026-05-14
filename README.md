@@ -15,6 +15,14 @@ Funkciók
 - Last.fm integráció a leghallgatottabb számok és playlistek játékba helyezéséhez.
 - Profilmenü ahol a felhasználó megtekintheti a statisztikáit, és kijelentkezhet a Google fiókjából.
 
+Rendszerkövetelmények
+
+- Java 21+
+- Node.js 18+ és npm
+- Docker és Docker Compose
+- Maven
+- PostgreSQL (Docker Compose-ban konfigurálva)
+
 Rövid használat
 
 1) Frontend (projekt gyökérben):
@@ -27,37 +35,61 @@ npx serve -s dist -l 5173
 ```
 
 2) Backend (projekt gyökérben):
-A projekt futtatásához szükséges Docker és Maven telepítése.
-A backend elindításához először a Docker Compose segítségével el kell indítani a szükséges szolgáltatásokat (pl. PostgreSQL adatbázis), majd a Maven segítségével elindítani a Spring Boot alkalmazást a megfelelő profil használatával.
+
+A projekt futtatásához szükséges Docker és Maven telepítése. A backend elindításához először a Docker Compose segítségével el kell indítani a szükséges szolgáltatásokat (pl. PostgreSQL adatbázis), majd a Maven Wrapper segítségével (mvnw.cmd Windows-on, ./mvnw Linux/macOS-on) elindítani a Spring Boot alkalmazást a megfelelő profil használatával:
 
 ```bash
-docker compose up -d
+docker-compose up -d
 cd backend
-mvn spring-boot:run "-Dspring-boot.run.profiles=postgres"
+# Windows
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--spring.profiles.active=postgres"
+# Linux/macOS
+./mvnw spring-boot:run "-Dspring-boot.run.arguments=--spring.profiles.active=postgres"
 ```
+
 3) Tesztek
-A backend és frontend tesztjeit részletesen az alábbiak szerint futtathatod. A leírás tartalmaz példákat teljest futtatásra, egyetlen fájl tesztelésére, watch módra és gyakori hibák megoldására.
 
-Frontend (Vitest)
-
-- Futtatás (az összes frontend teszt):
+Frontend (Vitest):
 
 ```bash
 cd frontend
-npx vitest --run
+npm run test
 ```
-Backend (Maven + JUnit)
 
-- Futtatás (minden backend unit teszt):
+Backend (Maven + JUnit):
 
 ```bash
 cd backend
-mvn test -DskipITs
+# Windows
+.\mvnw.cmd test
+# Linux/macOS
+./mvnw test
 ```
 
-Ahhoz hogy elinduljon a backend, mindenképp szükség van három .env fájlra, az example.env fájl alapján, amely tartalmazza a szükséges környezeti változókat (pl. Google OAuth, adatbázis hitelesítő adatok).
+Biztonsági konfigurálás
+
+A backend a következő biztonsági intézkedéseket tartalmazza:
+
+- Route-szintű JWT protection: a `/api/stats/**`, `/api/auth/me` és `/api/deezer/**` végpontok hitelesítést igényelnek.
+- Google OAuth audience (aud) validáció: a Google ID tokenok a saját Client ID-nkhoz kell, hogy kiadottak legyenek.
+- JWT Secret validáció: production módban (`-Dspring.profiles.active=prod`) kötelezően szükséges az `app.auth.jwtSecret` environment változó.
+- Development módban (default) plain-token módban működik a hitelesítés gyorsabb iteráció céljából.
+
+Environment változók
+
+Ahhoz hogy elinduljon a backend, szükség van az alábbi environment változókra az .env fájlban:
+
+- GOOGLE_CLIENT_ID: Google OAuth Client ID
+- GOOGLE_CLIENT_SECRET: Google OAuth Client Secret
+- APP_LASTFM_API_KEY: Last.fm API kulcs (opciónal)
+- APP_LASTFM_SECRET: Last.fm API secret (opciónal)
+- JWT_SECRET: JWT aláírási kulcs (production módban kötelezően szükséges)
+
+Végpontok
+
 - A frontend általában: http://localhost:5173
 - A backend szerver a következő címen fut: http://localhost:3002
 
 Konzulens: Bilicki Vilmos
 Készítette: Szabó Ádám
+

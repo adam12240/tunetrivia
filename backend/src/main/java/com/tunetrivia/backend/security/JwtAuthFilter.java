@@ -27,13 +27,18 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.springframework.core.env.Environment;
+
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);
 
     private final Key signingKey; // can be null -> plain-token mode
+    private final boolean isDevelopment;
 
-    public JwtAuthFilter(@Value("${app.auth.jwtSecret:}") String jwtSecret) {
+    public JwtAuthFilter(@Value("${app.auth.jwtSecret:}") String jwtSecret, Environment env) {
+        this.isDevelopment = env.getActiveProfiles().length == 0 || java.util.Arrays.asList(env.getActiveProfiles()).contains("dev");
+
         if (jwtSecret != null && !jwtSecret.isBlank()) {
             try {
                 this.signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
@@ -44,7 +49,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
         } else {
             this.signingKey = null;
-            log.info("JwtAuthFilter running in plain-token mode (no jwtSecret configured)");
+            if (isDevelopment) {
+                log.info("JwtAuthFilter running in plain-token mode (no jwtSecret configured) - DEVELOPMENT MODE ONLY");
+            } else {
+                log.error("JWT_SECRET not configured in production profile. Set app.auth.jwtSecret environment variable.");
+                throw new IllegalArgumentException("JWT_SECRET must be configured in non-development profiles");
+            }
         }
     }
 

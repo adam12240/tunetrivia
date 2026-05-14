@@ -35,7 +35,20 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
+                        .requestMatchers("/api/auth/google").permitAll()
+                        .requestMatchers("/api/auth/start").permitAll()
+                        .requestMatchers("/api/auth/callback").permitAll()
+                        .requestMatchers("/api/auth/logout").permitAll()
+                        .requestMatchers("/api/auth/avatar").permitAll()
+                        // Protected endpoints - require authentication
+                        .requestMatchers("/api/auth/me").authenticated()
+                        .requestMatchers("/api/stats/**").authenticated()
+                        .requestMatchers("/api/deezer/**").authenticated()
+                        // All other requests allowed without auth (for future endpoints)
+                        .anyRequest().permitAll()
+                )
                 .exceptionHandling(e -> e.authenticationEntryPoint((request, response, authException) -> {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType("application/json;charset=UTF-8");

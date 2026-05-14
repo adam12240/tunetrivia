@@ -56,6 +56,7 @@ public class AuthService {
 
     /**
      * Verify a Google ID token by calling Google's tokeninfo endpoint.
+     * Also validates that the audience (aud) claim matches our Google Client ID.
      */
     public GoogleVerifyResponse verifyGoogleIdToken(String idToken) {
         try {
@@ -68,6 +69,18 @@ public class AuthService {
             }
             String body = resp.body();
             Map<String, Object> json = mapper.readValue(body, new TypeReference<>() {});
+
+            // Validate audience (aud) matches our Google Client ID
+            String aud = json.getOrDefault("aud", null) != null ? String.valueOf(json.get("aud")) : null;
+            if (aud == null || aud.isBlank()) {
+                log.warn("tokeninfo did not contain aud claim: {}", body);
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "missing_aud_claim");
+            }
+            if (!aud.equals(googleClientId)) {
+                log.warn("Token aud claim '{}' does not match our Google Client ID '{}'", aud, googleClientId);
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "aud_mismatch");
+            }
+
             String sub = json.getOrDefault("sub", null) != null ? String.valueOf(json.get("sub")) : null;
             String email = json.getOrDefault("email", null) != null ? String.valueOf(json.get("email")) : null;
             String name = json.getOrDefault("name", null) != null ? String.valueOf(json.get("name")) : null;
